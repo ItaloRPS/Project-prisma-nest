@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,27 +7,294 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
 model User {
-  id  Int @id @default(autoincrement())
-  email String @unique
-  name String
-  admin Boolean @default(false)
-  createdAt DateTime @default(now())
-  posts Post[]
-
-  @@map("user")
+  id                   Int           @id @default(autoincrement())
+  email                String        @unique
+  password             String
+  name                 String
+  idperfil             Int?
+  status               String?       @default("A") @db.VarChar(1)
+  passwordResetToken   String?       @db.VarChar(255)
+  passwordResetExpires DateTime?     @db.DateTime(0)
+  perfil               perfil?       @relation(fields: [idperfil], references: [idperfil], onDelete: NoAction, onUpdate: NoAction, map: "idperfil_fk")
+  UserEmpresa          UserEmpresa[]
+  lead                 lead[]
+  lojista              lojista[]
+  @@index([idperfil], map: "idperfil_fk_idx")
 }
-
-model Post {
- id Int @id @default(autoincrement())
- published Boolean @default(false)
- title String @db.VarChar(255)
- content String?
- createdAt DateTime @default(now())
- updateAt  DateTime @default(now())
- author User? @relation(fields: [authorid],references: [id])
- authorid Int?
-
- @@map("post")
+model UserEmpresa {
+  id        Int     @id @default(autoincrement())
+  idusuario Int
+  idempresa Int
+  empresa   empresa @relation(fields: [idempresa], references: [idempresa])
+  User      User    @relation(fields: [idusuario], references: [id])
+  @@unique([idusuario, idempresa], map: "user_empresa_unique_idx")
+  @@index([idempresa], map: "empresa_id_idx")
+  @@index([idusuario], map: "user_id_idx")
 }
-
+model acesso {
+  idacesso Int     @id @default(autoincrement())
+  idlote   Int
+  link     String? @db.VarChar(255)
+  hash     String? @unique(map: "hash_UNIQUE") @db.VarChar(255)
+  lote     lote    @relation(fields: [idlote], references: [idlote], onDelete: NoAction, onUpdate: NoAction, map: "acesso_idlote")
+  lead     lead[]
+  tema     tema[]
+  @@index([idlote])
+}
+model cidade {
+  idcidade  Int       @id @default(autoincrement())
+  idestado  Int
+  codcidade String    @db.VarChar(20)
+  descricao String    @db.VarChar(50)
+  estado    estado    @relation(fields: [idestado], references: [idestado], onDelete: NoAction, onUpdate: NoAction, map: "cidade_idestado")
+  empresa   empresa[]
+  lead      lead[]
+  lojista   lojista[]
+  @@index([idestado])
+}
+model config_produto {
+  idconfigproduto Int       @id @default(autoincrement())
+  status          String    @default("A") @db.VarChar(1)
+  nome            String    @db.VarChar(250)
+  produto         produto[]
+}
+model empresa {
+  idempresa   Int           @id @default(autoincrement())
+  idpais      Int
+  idestado    Int
+  status      String        @default("A") @db.VarChar(1)
+  idcidade    Int
+  nome        String        @db.VarChar(150)
+  cnpj        String        @db.VarChar(20)
+  email       String        @db.VarChar(250)
+  telefone    String        @db.VarChar(15)
+  UserEmpresa UserEmpresa[]
+  cidade      cidade        @relation(fields: [idcidade], references: [idcidade], onDelete: NoAction, onUpdate: NoAction, map: "empresa_idcidade")
+  estado      estado        @relation(fields: [idestado], references: [idestado], onDelete: NoAction, onUpdate: NoAction, map: "empresa_idestado")
+  pais        pais          @relation(fields: [idpais], references: [idpais], onDelete: NoAction, onUpdate: NoAction, map: "empresa_idpais")
+  lojista     lojista[]
+  mensagem    mensagem[]
+  produto     produto[]
+  whatsapp    whatsapp[]
+  @@index([idcidade])
+  @@index([idestado])
+  @@index([idpais])
+}
+model estado {
+  idestado  Int       @id @default(autoincrement())
+  idpais    Int
+  codetd    String    @db.VarChar(2)
+  descricao String    @db.VarChar(40)
+  cidade    cidade[]
+  empresa   empresa[]
+  pais      pais      @relation(fields: [idpais], references: [idpais], onDelete: NoAction, onUpdate: NoAction, map: "estado_idpais")
+  lead      lead[]
+  lojista   lojista[]
+  @@index([idpais])
+}
+model lead {
+  idlead       Int      @id @default(autoincrement())
+  idusuario    Int
+  idpais       Int
+  idestado     Int
+  idcidade     Int
+  idacesso     Int
+  idlojista    Int?
+  nome         String   @db.VarChar(150)
+  telefone     String   @db.VarChar(15)
+  dtnascimento DateTime @db.Date
+  email        String   @db.VarChar(250)
+  acesso       acesso   @relation(fields: [idacesso], references: [idacesso], onDelete: NoAction, onUpdate: NoAction, map: "lead_idacesso_fk")
+  cidade       cidade   @relation(fields: [idcidade], references: [idcidade], onDelete: NoAction, onUpdate: NoAction, map: "lead_idcidade_fk")
+  estado       estado   @relation(fields: [idestado], references: [idestado], onDelete: NoAction, onUpdate: NoAction, map: "lead_idestado_fk")
+  pais         pais     @relation(fields: [idpais], references: [idpais], onDelete: NoAction, onUpdate: NoAction, map: "lead_idpais_fk")
+  User         User     @relation(fields: [idusuario], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "lead_idusuario_fk")
+  @@index([idacesso], map: "lead_idacesso_fk_idx")
+  @@index([idcidade], map: "lead_idcidade_fk_idx")
+  @@index([idestado], map: "lead_idestado_fk_idx")
+  @@index([idpais], map: "lead_idpais_fk_idx")
+  @@index([idusuario], map: "lead_idusuario_fk_idx")
+}
+model lote {
+  idlote        Int             @id @default(autoincrement())
+  idproduto     Int
+  codigo        String          @db.VarChar(150)
+  quantidade    Int             @default(0)
+  dtativacao    DateTime?       @db.Date
+  liberado      String          @default("N") @db.VarChar(1)
+  idmodelo      Int
+  acesso        acesso[]
+  modelo        modelo          @relation(fields: [idmodelo], references: [idmodelo], onDelete: NoAction, onUpdate: NoAction, map: "lote_idmodelo")
+  produto       produto         @relation(fields: [idproduto], references: [idproduto], onDelete: NoAction, onUpdate: NoAction, map: "lote_idproduto")
+  lote_mensagem lote_mensagem[]
+  tema          tema[]
+  @@index([idmodelo])
+  @@index([idproduto])
+}
+model lote_mensagem {
+  idleadmensagem Int       @id @default(autoincrement())
+  idlote         Int
+  idmensagem     Int
+  created_at     DateTime  @db.DateTime(0)
+  created_by     String    @db.VarChar(100)
+  updated_at     DateTime? @db.DateTime(0)
+  updated_by     String?   @db.VarChar(100)
+  mensagem       mensagem  @relation(fields: [idmensagem], references: [idmensagem], onUpdate: Restrict, map: "fk_lead_mesagem_mesagem")
+  lote           lote      @relation(fields: [idlote], references: [idlote], onDelete: NoAction, onUpdate: NoAction, map: "fk_lote_mesagem_lote")
+  @@index([idmensagem], map: "fk_idmenssagem_lead_mensagem_idx")
+  @@index([idlote], map: "fk_lote_mesagem_lote_idx")
+}
+model mensagem {
+  idmensagem    Int             @id @default(autoincrement())
+  idempresa     Int
+  idwhatsapp    Int
+  idproduto     Int?
+  idestado      Int?
+  idcidade      Int?
+  descricao     String          @db.VarChar(100)
+  texto         String          @db.LongText
+  data          String?         @db.VarChar(45)
+  hora          String?         @db.VarChar(45)
+  status        String          @db.VarChar(45)
+  created_at    DateTime        @db.DateTime(0)
+  created_by    String          @db.VarChar(100)
+  updated_at    DateTime?       @db.DateTime(0)
+  updated_by    String?         @db.VarChar(100)
+  lote_mensagem lote_mensagem[]
+  empresa       empresa         @relation(fields: [idempresa], references: [idempresa], onDelete: NoAction, onUpdate: NoAction, map: "fk_empresa_mesagem")
+  whatsapp      whatsapp        @relation(fields: [idwhatsapp], references: [idwhatsapp], onDelete: NoAction, onUpdate: NoAction, map: "fk_idwhatsapp_mesagem")
+  @@index([idempresa], map: "fk_idempresa_mensagem_idx")
+  @@index([idwhatsapp], map: "fk_idwhatsapp_mesagem")
+}
+model modelo {
+  idmodelo Int    @id @default(autoincrement())
+  status   String @default("A") @db.VarChar(1)
+  nome     String @db.VarChar(150)
+  lote     lote[]
+}
+model pais {
+  idpais    Int       @id @default(autoincrement())
+  codpais   String    @db.VarChar(5)
+  descricao String    @db.VarChar(60)
+  empresa   empresa[]
+  estado    estado[]
+  lead      lead[]
+  lojista   lojista[]
+  @@index([idpais], map: "idpais_idx")
+}
+model perfil {
+  idperfil   Int          @id @default(autoincrement())
+  status     String       @default("A") @db.VarChar(1)
+  nome       String       @db.VarChar(150)
+  User       User[]
+  permissoes permissoes[]
+}
+model permissoes {
+  idpermissoes Int    @id @default(autoincrement())
+  idperfil     Int
+  rota         String @db.VarChar(255)
+  consultar    Int    @default(0)
+  inserir      Int    @default(0)
+  alterar      Int    @default(0)
+  deletar      Int    @default(0)
+  nome         String @db.VarChar(255)
+  icone        String @db.VarChar(255)
+  perfil       perfil @relation(fields: [idperfil], references: [idperfil], onDelete: NoAction, onUpdate: NoAction, map: "permissoes_idperfil")
+  @@index([idperfil])
+}
+model produto {
+  idproduto         Int            @id @default(autoincrement())
+  idempresa         Int
+  idconfigproduto   Int
+  status            String         @default("A") @db.VarChar(1)
+  imagem            String         @db.VarChar(255)
+  nome              String         @db.VarChar(250)
+  necessitacadastro Int            @default(0)
+  editatemplate     Int            @default(0)
+  configimagem      String?        @db.VarChar(255)
+  configvideo       String?        @db.VarChar(255)
+  configimagemfundo String?        @db.VarChar(255)
+  configdescricao   String?        @db.VarChar(255)
+  configimagembaner String?        @db.VarChar(255)
+  configlinkbaner   String?        @db.VarChar(255)
+  url               String?        @db.LongText
+  created_at        DateTime?      @db.DateTime(0)
+  created_by        String?        @db.VarChar(100)
+  updated_at        DateTime?      @db.DateTime(0)
+  updated_by        String?        @db.VarChar(100)
+  lote              lote[]
+  config_produto    config_produto @relation(fields: [idconfigproduto], references: [idconfigproduto], onDelete: NoAction, onUpdate: NoAction, map: "produto_idconfigproduto")
+  empresa           empresa        @relation(fields: [idempresa], references: [idempresa], onDelete: NoAction, onUpdate: NoAction, map: "produto_idempresa")
+  @@index([idconfigproduto], map: "idconfigproduto_idx")
+  @@index([idempresa], map: "idempresa_idx")
+}
+model tema {
+  idtema         Int        @id @default(autoincrement())
+  idacesso       Int?
+  idlote         Int?
+  reutilizar     String?    @default("N") @db.VarChar(1)
+  logo           String?    @db.VarChar(255)
+  bgcolor        String?    @db.VarChar(10)
+  textcolor      String?    @db.VarChar(10)
+  imagem         String?    @db.VarChar(255)
+  video          String?    @db.LongText
+  descricao      String?    @db.LongText
+  nome           String?    @db.VarChar(255)
+  containerColor String?    @db.VarChar(10)
+  nomeTema       String?    @db.VarChar(255)
+  ocupacao       String?    @db.VarChar(255)
+  created_at     DateTime?  @db.DateTime(0)
+  created_by     String?    @db.VarChar(100)
+  updated_at     DateTime?  @db.DateTime(0)
+  updated_by     String?    @db.VarChar(100)
+  acesso         acesso?    @relation(fields: [idacesso], references: [idacesso], onDelete: NoAction, onUpdate: NoAction, map: "fk_idacesso")
+  lote           lote?      @relation(fields: [idlote], references: [idlote], onDelete: NoAction, onUpdate: NoAction, map: "fk_idlote")
+  temaitem       temaitem[]
+  @@index([idacesso], map: "fk_idacesso_idx")
+  @@index([idlote], map: "fk_idlote_idx")
+}
+model temaitem {
+  idtemaitem Int     @id @default(autoincrement())
+  idtema     Int
+  descricao  String  @db.VarChar(150)
+  link       String? @db.VarChar(255)
+  icone      String  @db.VarChar(255)
+  tema       tema    @relation(fields: [idtema], references: [idtema], onDelete: NoAction, onUpdate: NoAction, map: "temaitem_idtema")
+  @@index([idtema])
+}
+model whatsapp {
+  idwhatsapp Int        @id @unique(map: "idwhatsapp_UNIQUE") @default(autoincrement())
+  idempresa  Int
+  endpoint   String     @db.VarChar(100)
+  session    String     @db.VarChar(100)
+  sessionkey String     @db.VarChar(100)
+  token      String     @db.VarChar(100)
+  numero     String     @db.VarChar(45)
+  created_at DateTime   @db.DateTime(0)
+  created_by String     @db.VarChar(100)
+  updated_at DateTime?  @db.DateTime(0)
+  updated_by String?    @db.VarChar(100)
+  mensagem   mensagem[]
+  empresa    empresa    @relation(fields: [idempresa], references: [idempresa], onDelete: NoAction, onUpdate: NoAction, map: "fk_empresa_whatsapp")
+  @@index([idempresa], map: "fk_empresa_whatsapp_idx")
+}
+model lojista {
+  idlojista Int      @id @unique(map: "idlojista_UNIQUE") @default(autoincrement())
+  idUser    Int
+  idpais    Int
+  idestado  Int
+  idcidade  Int?
+  idempresa Int?
+  User      User     @relation(fields: [idUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "idUser_lojista_fk")
+  cidade    cidade?  @relation(fields: [idcidade], references: [idcidade], onDelete: NoAction, onUpdate: NoAction, map: "idcidade_lojista_fk")
+  estado    estado   @relation(fields: [idestado], references: [idestado], onDelete: NoAction, onUpdate: NoAction, map: "idestado_lojista_fk")
+  pais      pais     @relation(fields: [idpais], references: [idpais], onDelete: NoAction, onUpdate: NoAction, map: "idpais_lojista_fk")
+  empresa   empresa? @relation(fields: [idempresa], references: [idempresa], onDelete: Restrict, onUpdate: Restrict, map: "lojista_empresa_FK")
+  @@index([idcidade], map: "idcidade_lojista_fk_idx")
+  @@index([idestado], map: "idestado_lojista_fk_idx")
+  @@index([idpais], map: "idpais_lojista_fk_idx")
+  @@index([idUser], map: "idUser_lojista_fk_idx")
+  @@index([idempresa], map: "lojista_empresa_FK")
+}
